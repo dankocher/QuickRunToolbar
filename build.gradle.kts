@@ -3,8 +3,8 @@ plugins {
     kotlin("jvm") version "2.1.0"
 }
 
-group = "com.dilongdann.quickruntoolbar"
-version = "0.1.9"
+group = "com.dilongdann.quickrun"
+version = "0.1.11"
 
 repositories {
     mavenCentral()
