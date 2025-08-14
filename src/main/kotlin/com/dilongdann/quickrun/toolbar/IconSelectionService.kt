@@ -1,11 +1,13 @@
-package com.dilongdann.quickruntoolbar.toolbar
+package com.dilongdann.quickrun.toolbar
 
+import com.intellij.icons.AllIcons
 import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 import com.intellij.openapi.components.StoragePathMacros
 import com.intellij.openapi.project.Project
+import com.intellij.util.SVGLoader
 import com.intellij.util.xmlb.annotations.Attribute
 import com.intellij.util.xmlb.annotations.MapAnnotation
 import com.intellij.util.xmlb.annotations.Property
@@ -16,7 +18,7 @@ import javax.swing.ImageIcon
 @Service(Service.Level.PROJECT)
 @State(
     name = "QuickRunIconSelections",
-    storages = [Storage(StoragePathMacros.WORKSPACE_FILE)] // Preferible a nivel usuario/proyecto
+    storages = [Storage("quick_run.xml")] // Guardar junto a la configuración de Quick Run
 )
 class IconSelectionService(private val project: Project) : PersistentStateComponent<IconSelectionService.State> {
 
@@ -72,7 +74,7 @@ class IconSelectionService(private val project: Project) : PersistentStateCompon
             if (!file.exists()) return null
             val url = file.toURI().toURL()
             if (path.lowercase().endsWith(".svg")) {
-                val img = com.intellij.util.SVGLoader.load(url, 1.0f)
+                val img = SVGLoader.load(url, 1.0f)
                 ImageIcon(img)
             } else {
                 ImageIcon(url)
@@ -88,7 +90,7 @@ class IconSelectionService(private val project: Project) : PersistentStateCompon
         val parts = key.split('.').filter { it.isNotBlank() }
         if (parts.isEmpty()) return null
         return try {
-            var cls: Class<*> = com.intellij.icons.AllIcons::class.java
+            var cls: Class<*> = AllIcons::class.java
             for (i in 0 until parts.size - 1) {
                 val nested = "${cls.name}\$${parts[i]}"
                 cls = Class.forName(nested)

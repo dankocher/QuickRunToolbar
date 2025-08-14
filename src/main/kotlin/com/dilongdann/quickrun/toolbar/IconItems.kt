@@ -1,4 +1,4 @@
-package com.dilongdann.quickruntoolbar.toolbar
+package com.dilongdann.quickrun.toolbar
 
 import com.intellij.icons.AllIcons
 import javax.swing.Icon

@@ -1,4 +1,4 @@
-package com.dilongdann.quickruntoolbar.toolbar
+package com.dilongdann.quickrun.toolbar
 
 import com.intellij.execution.ProgramRunnerUtil
 import com.intellij.execution.RunManager
@@ -6,6 +6,7 @@ import com.intellij.execution.executors.DefaultRunExecutor
 import com.intellij.icons.AllIcons
 import com.intellij.ide.DataManager
 import com.intellij.openapi.actionSystem.ActionUpdateThread
+import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.actionSystem.Presentation
@@ -17,8 +18,8 @@ import javax.swing.Icon
 import javax.swing.JButton
 import javax.swing.JComponent
 
-class QuickRunAction(private val configName: String) :
-    com.intellij.openapi.actionSystem.AnAction(configName, "Run \"$configName\"", AllIcons.Actions.Execute),
+class QuickRunAction(private val actualName: String, private val displayName: String) :
+    com.intellij.openapi.actionSystem.AnAction(displayName, "Run \"$actualName\"", AllIcons.Actions.Execute),
     CustomComponentAction,
     DumbAware {
 
@@ -26,33 +27,33 @@ class QuickRunAction(private val configName: String) :
 
     override fun update(e: AnActionEvent) {
         val project = e.project
-        e.presentation.icon = resolveIcon(project, configName)
-        e.presentation.text = configName
-        e.presentation.description = "Run \"$configName\""
+        e.presentation.icon = resolveIcon(project, actualName)
+        e.presentation.text = displayName
+        e.presentation.description = "Run \"$actualName\""
         e.presentation.isEnabledAndVisible = true
     }
 
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
-        runConfigurationByName(project, configName)
+        runConfigurationByName(project, actualName)
     }
 
     override fun createCustomComponent(presentation: Presentation, place: String): JComponent {
-        val button = JButton(toHtmlPreserveCase(configName), AllIcons.Actions.Execute)
-        button.toolTipText = presentation.description ?: "Run \"$configName\""
+        val button = JButton(toHtmlPreserveCase(displayName), AllIcons.Actions.Execute)
+        button.toolTipText = presentation.description ?: "Run \"$actualName\""
         button.putClientProperty("ActionToolbar.smallVariant", true)
-        button.iconTextGap = 10
+//        button.iconTextGap = 10
         button.addActionListener(ActionListener {
             val dataContext = DataManager.getInstance().getDataContext(button)
             val project = CommonDataKeys.PROJECT.getData(dataContext) ?: return@ActionListener
-            runConfigurationByName(project, configName)
+            runConfigurationByName(project, actualName)
         })
         return button
     }
 
     override fun updateCustomComponent(component: JComponent, presentation: Presentation) {
         (component as? JButton)?.let { btn ->
-            btn.text = toHtmlPreserveCase(presentation.text ?: configName)
+            btn.text = toHtmlPreserveCase(presentation.text ?: displayName)
             btn.icon = presentation.icon ?: AllIcons.Actions.Execute
             btn.toolTipText = presentation.description
         }
