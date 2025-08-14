@@ -1,0 +1,34 @@
+<idea-plugin>
+  <id>com.dilongdann.quickruntoolbar.toolbar</id>
+  <name>QuickRunToolbar</name>
+  <vendor email="" url="">Quick Run Toolbar</vendor>
+  <description>
+    Shows pinned Run Configurations as buttons on the main toolbar.
+  </description>
+
+  <depends>com.intellij.modules.platform</depends>
+
+  <!-- Quita el ToolWindow -->
+  <!--
+  <extensions defaultExtensionNs="com.intellij">
+    <toolWindow id="Run Pins" factoryClass="com.dilongdann.quickruntoolbar.toolbar.QuickRunToolWindowFactory" anchor="top" icon="AllIcons.Actions.Execute" canCloseContent="false" />
+  </extensions>
+  -->
+
+  <extensions defaultExtensionNs="com.intellij">
+    <runConfigurationExtension implementation="com.dilongdann.quickruntoolbar.toolbar.IconSelectorRunConfigurationExtension"/>
+  </extensions>
+
+  <!-- Agrega acciones al Main Toolbar -->
+  <actions>
+    <!-- Grupo dinámico que vive directamente en el toolbar (no popup) -->
+    <group
+        id="com.dilongdann.quickruntoolbar.toolbar.QuickRunGroup"
+        class="com.dilongdann.quickruntoolbar.toolbar.QuickRunActionGroup"
+        text="Quick Run Toolbar"
+        popup="false">
+      <!-- Colócalo en el lado derecho del Main Toolbar (New UI) -->
+      <add-to-group group-id="MainToolbarRight" anchor="first"/>
+    </group>
+  </actions>
+</idea-plugin>
