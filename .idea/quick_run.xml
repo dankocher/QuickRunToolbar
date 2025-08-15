@@ -8,6 +8,7 @@
         <Item key="GradleRunConfiguration::Run Ide" enabled="true" />
         <Item key="ShConfigurationType::update_version" displayName="Version" enabled="true" />
         <Item key="GradleRunConfiguration::Clean" enabled="true" />
+        <Item key="GradleRunConfiguration::Verify Plugin" enabled="true" />
       </list>
     </items>
   </component>
@@ -31,6 +32,11 @@
       <cfg id="GradleRunConfiguration::Run Ide">
         <value>
           <Entry mode="ALL_ICONS" value="AllIcons.Nodes.IdeaModule" />
+        </value>
+      </cfg>
+      <cfg id="GradleRunConfiguration::Verify Plugin">
+        <value>
+          <Entry mode="ALL_ICONS" value="AllIcons.General.GreenCheckmark" />
         </value>
       </cfg>
       <cfg id="ShConfigurationType::update_version">
