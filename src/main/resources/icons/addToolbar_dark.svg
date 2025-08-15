@@ -1,0 +1,17 @@
+<!-- Copyright 2000-2021 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE file. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <g fill="none" fill-rule="evenodd">
+    <rect width="2" height="10" x="5" y="3" fill="#CED0D6"/>
+    <rect width="2" height="10" x="5" y="3" fill="#CED0D6" transform="rotate(90 6 8)"/>
+<!--    <text x="9" y="16"-->
+<!--          font-family="Arial, Helvetica, sans-serif"-->
+<!--          font-size="7px"-->
+<!--          font-weight="bold"-->
+<!--          letter-spacing="1"-->
+<!--          fill="#CED0D6">-->
+<!--      <tspan>T</tspan>-->
+<!--    </text>-->
+    <path fill="#CED0D6" d="M2.9834,1.2 L4.1,4 L1.8964,4 L2.9834,1.2 Z M4.8154,5.9999 L6.0004,5.9999 L3.4464,-0.0001 L2.5534,-0.0001 L0.0004,5.9999 L1.1514,5.9999 L1.5654,4.9999 L4.4064,4.9999 L4.8154,5.9999 Z" transform="translate(8 10)"/>
+
+  </g>
+</svg>

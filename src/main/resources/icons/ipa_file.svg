@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="16px" height="16px" viewBox="0 0 16 16" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>ipa</title>
+    <g id="页面-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="ipa" transform="translate(-1.000000, -1.000000)">
+            <rect id="frame" x="0" y="0" width="16" height="16"></rect>
+            <g id="编组" transform="translate(1.000000, 1.000000)" fill-rule="nonzero">
+                <polygon id="路径" fill-opacity="0.7" fill="#F26522" points="0 15 15 15 15 8 0 8"></polygon>
+                <polygon id="路径" fill-opacity="0.8" fill="#9AA7B0" points="6 0 2 4 6 4"></polygon>
+                <polygon id="路径" fill-opacity="0.8" fill="#9AA7B0" points="7 0 7 5 2 5 2 7 12 7 12 0"></polygon>
+                <path d="M12.15,12 L11.496,10.4 L10.85,12 L12.15,12 Z M11.109,9 L11.89,9 L14,14 L12.9,14 L12.4,13 L10.6,13 L10.1,14 L9,14 L11.109,9 Z" id="形状" fill-opacity="0.7" fill="#231F20"></path>
+                <path d="M6.9,11.5 C7.564,11.5 8,11.384 8,10.75 C8,10.116 7.557,10 6.9,10 L6,10 L6,11.5 L6.9,11.5 Z M5,9 L6.971,9 C8.142,9 9,9.642 9,10.65 C9,12.286 7.971,12.5 6.872,12.5 L6,12.5 L6,14 L5,14 L5,9 Z" id="形状" fill-opacity="0.7" fill="#231F20"></path>
+                <polygon id="路径" fill="#231F20" opacity="0.7" points="2.95 13.1666667 2.95 9.83333333 4 9.83333333 4 9 1 9 1 9.83333333 2.05 9.83333333 2.05 13.1666667 1 13.1716667 1 14 4 14 4 13.1666667"></polygon>
+            </g>
+        </g>
+    </g>
+</svg>

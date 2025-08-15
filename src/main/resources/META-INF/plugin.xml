@@ -15,10 +15,6 @@
     </extensions>
     -->
 
-    <extensions defaultExtensionNs="com.intellij">
-        <runConfigurationExtension implementation="com.dilongdann.quickrun.toolbar.IconSelectorRunConfigurationExtension"/>
-    </extensions>
-
     <!-- Agrega acciones al Main Toolbar -->
     <actions>
         <!-- Grupo dinámico que vive directamente en el toolbar (no popup) -->
@@ -27,8 +23,19 @@
                 class="com.dilongdann.quickrun.toolbar.QuickRunActionGroup"
                 text="Quick Run Toolbar"
                 popup="false">
-            <!-- Colócalo en el lado derecho del Main Toolbar (New UI) -->
+            <!-- New UI -->
             <add-to-group group-id="MainToolbarRight" anchor="first"/>
+            <!-- Old UI (fallback) -->
+            <add-to-group group-id="MainToolbar" anchor="last"/>
         </group>
+
+        <!-- Acción de edición accesible desde el menú Tools -->
+        <action
+                id="com.dilongdann.quickrun.toolbar.EditAction"
+                class="com.dilongdann.quickrun.toolbar.QuickRunEditAction"
+                text="Quick Run: Edit Buttons"
+                description="Edit Quick Run Toolbar buttons">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
     </actions>
 </idea-plugin>
