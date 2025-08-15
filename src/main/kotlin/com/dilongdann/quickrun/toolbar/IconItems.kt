@@ -23,29 +23,52 @@ object IconItems {
     private var cached: List<IconItem>? = null
     private val building = AtomicBoolean(false)
 
+    // Clave sentinela para lanzar el selector de archivo desde el editor
+    const val CHOOSE_FILE_KEY: String = "file:CHOOSE"
+
     // Construye la lista: "Default icon" + AllIcons + iconos de plugins (carpetas /icons/**)
     fun all(): List<IconItem> {
         cached?.let { return it }
-        // Devuelve una lista mínima al vuelo para no bloquear el EDT si alguien usa all() sincrónicamente
-        val minimal = mutableListOf<IconItem>()
-        minimal.add(IconItem("", null, "Default icon"))
-        minimal.addAll(collectAllIcons())
-        minimal.addAll(collectRunConfigurationIcons())
-        minimal.addAll(collectOwnPluginIcons())
-        return minimal.sortedBy { it.displayName }
+        // Entradas fijadas al principio
+        val top = listOf(
+            IconItem("", null, "Default icon"),
+            IconItem(CHOOSE_FILE_KEY, null, "Choose custom icon…")
+        )
+        // Resto de entradas
+        val rest = mutableListOf<IconItem>()
+        rest.addAll(collectAllIcons())
+        rest.addAll(collectRunConfigurationIcons())
+        rest.addAll(collectOwnPluginIcons())
+        val orderedRest = rest
+            .distinctBy { it.key to it.displayName }
+            .sortedBy { it.displayName }
+        return buildList {
+            addAll(top)
+            addAll(orderedRest)
+        }
     }
 
     // Carga rápida inmediata (Default + AllIcons) y construcción completa cacheada en background
     fun allAsync(project: Project?, onReady: (List<IconItem>) -> Unit) {
         cached?.let { onReady(it); return }
 
+        // Entradas fijadas al principio
+        val top = listOf(
+            IconItem("", null, "Default icon"),
+            IconItem(CHOOSE_FILE_KEY, null, "Choose custom icon…")
+        )
+
         // Entrega inmediata: no bloquea el popup
-        val quick = mutableListOf<IconItem>().apply {
-            add(IconItem("", null, "Default icon"))
+        val quickRest = mutableListOf<IconItem>().apply {
             addAll(collectAllIcons())
             addAll(collectRunConfigurationIcons())
             addAll(collectOwnPluginIcons())
-        }.distinctBy { it.key to it.displayName }.sortedBy { it.displayName }
+        }.distinctBy { it.key to it.displayName }
+         .sortedBy { it.displayName }
+        val quick = buildList {
+            addAll(top)
+            addAll(quickRest)
+        }
         onReady(quick)
 
         // Construcción completa (incluye iconos de plugins) en background para próximas aperturas
@@ -54,14 +77,23 @@ object IconItems {
         }
         ProgressManager.getInstance().run(object : Task.Backgroundable(project, "Loading IDE and plugin icons", false) {
             private fun build(): List<IconItem> {
-                val result = mutableListOf<IconItem>()
-                result.add(IconItem("", null, "Default icon"))
-                result.addAll(collectAllIcons())
-                result.addAll(collectRunConfigurationIcons())
+                val topBg = listOf(
+                    IconItem("", null, "Default icon"),
+                    IconItem(CHOOSE_FILE_KEY, null, "Choose custom icon…")
+                )
+                val rest = mutableListOf<IconItem>()
+                rest.addAll(collectAllIcons())
+                rest.addAll(collectRunConfigurationIcons())
                 // Asegurar que los iconos del propio plugin estén disponibles aunque falle el escaneo global
-                result.addAll(collectOwnPluginIcons())
-                result.addAll(collectPluginIcons())
-                return result.distinctBy { it.key to it.displayName }.sortedBy { it.displayName }
+                rest.addAll(collectOwnPluginIcons())
+                rest.addAll(collectPluginIcons())
+                val orderedRest = rest
+                    .distinctBy { it.key to it.displayName }
+                    .sortedBy { it.displayName }
+                return buildList {
+                    addAll(topBg)
+                    addAll(orderedRest)
+                }
             }
 
             override fun run(indicator: ProgressIndicator) {
@@ -103,7 +135,11 @@ object IconItems {
             val descriptor = PluginManagerCore.getPlugin(PluginId.getId(THIS_PLUGIN_ID)) ?: return emptyList()
             val pluginPath = descriptor.pluginPath
             if (Files.isDirectory(pluginPath)) {
-                scanIconsInDirectory(THIS_PLUGIN_ID, pluginPath)
+                val list = mutableListOf<IconItem>()
+                list += scanIconsInDirectory(THIS_PLUGIN_ID, pluginPath)
+                // En runIde los recursos están dentro de jars en /lib: incluirlos
+                list += scanIconsInPluginLibJars(THIS_PLUGIN_ID, pluginPath)
+                list
             } else {
                 scanIconsInZip(THIS_PLUGIN_ID, pluginPath)
             }
@@ -147,6 +183,8 @@ object IconItems {
             val pluginPath = descriptor.pluginPath
             if (Files.isDirectory(pluginPath)) {
                 out += scanIconsInDirectory(pluginId, pluginPath)
+                // Recursos empaquetados en jars dentro de /lib
+                out += scanIconsInPluginLibJars(pluginId, pluginPath)
             } else {
                 out += scanIconsInZip(pluginId, pluginPath)
             }
@@ -173,6 +211,22 @@ object IconItems {
                         res.add(IconItem(key, icon, display))
                     }
                 }
+            }
+        }
+        return res
+    }
+
+    // Escanea los jars del plugin (por ejemplo en runIde: <pluginPath>/lib/*.jar) buscando /icons/**.{svg,png}
+    private fun scanIconsInPluginLibJars(pluginId: String, root: Path): List<IconItem> {
+        val res = mutableListOf<IconItem>()
+        val libDir = root.resolve("lib")
+        if (!Files.isDirectory(libDir)) return res
+        runCatching {
+            Files.list(libDir).use { stream ->
+                stream.filter { Files.isRegularFile(it) && it.fileName.toString().lowercase().endsWith(".jar") }
+                    .forEach { jar ->
+                        res += scanIconsInZip(pluginId, jar)
+                    }
             }
         }
         return res

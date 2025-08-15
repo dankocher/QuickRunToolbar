@@ -16,6 +16,12 @@ import com.intellij.util.xmlb.annotations.Property
 import java.io.File
 import javax.swing.Icon
 import javax.swing.ImageIcon
+import com.intellij.openapi.fileChooser.FileChooser
+import com.intellij.openapi.fileChooser.FileChooserDescriptor
+import com.intellij.openapi.vfs.VfsUtilCore
+import javax.swing.JComponent
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.ModalityState
 
 @Service(Service.Level.PROJECT)
 @State(
@@ -128,6 +134,61 @@ class IconSelectionService(private val project: Project) : PersistentStateCompon
             (field.get(null) as? Icon)
         } catch (_: Throwable) {
             null
+        }
+    }
+
+    // Abre el explorador (Finder/Explorer) para seleccionar un icono SVG o PNG y devuelve una Entry FILE
+    fun chooseIconFile(parent: JComponent?): Entry? {
+        val descriptor = FileChooserDescriptor(
+            /* chooseFiles = */true,
+            /* chooseFolders = */false,
+            /* chooseJars = */false,
+            /* chooseJarsAsFiles = */false,
+            /* chooseJarContents = */false,
+            /* chooseMultiple = */false
+        ).apply {
+            title = "Choose Custom Icon"
+            withFileFilter { vf ->
+                val ext = vf.extension?.lowercase()
+                ext == "svg" || ext == "png"
+            }
+        }
+
+        var chosenPath: String? = null
+        val app = ApplicationManager.getApplication()
+        val task = {
+            val vf = FileChooser.chooseFile(descriptor, parent, project, null)
+            if (vf != null) {
+                chosenPath = VfsUtilCore.virtualToIoFile(vf).absolutePath
+            }
+        }
+
+        if (app.isDispatchThread) {
+            task()
+        } else {
+            app.invokeAndWait(task, ModalityState.any())
+        }
+
+        return chosenPath?.let { Entry(Mode.FILE, it) }
+    }
+
+    // Convierte la clave seleccionada en Entry; si es "Choose custom icon…" abre el explorador
+    fun buildEntryFromKeyInteractive(parent: JComponent?, selectedKey: String): Entry? {
+        return when {
+            selectedKey.isEmpty() -> Entry(Mode.DEFAULT, null)
+            selectedKey == IconItems.CHOOSE_FILE_KEY -> chooseIconFile(parent)
+            selectedKey.startsWith("plugin:") -> {
+                // El valor esperado por PLUGIN_RESOURCE es "<pluginId>::/ruta"
+                val v = selectedKey.removePrefix("plugin:")
+                Entry(Mode.PLUGIN_RESOURCE, v)
+            }
+            selectedKey.startsWith("rcType:") -> {
+                Entry(Mode.RC_TYPE, selectedKey.removePrefix("rcType:"))
+            }
+            else -> {
+                // Por defecto, tratar como AllIcons.<...>
+                Entry(Mode.ALL_ICONS, selectedKey)
+            }
         }
     }
 }

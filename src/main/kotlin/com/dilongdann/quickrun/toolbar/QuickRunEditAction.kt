@@ -265,22 +265,12 @@ private class QuickRunConfigDialog(private val project: Project) : DialogWrapper
                             override fun getIconFor(value: IconItem): Icon? = value.icon
                             override fun onChosen(selectedValue: IconItem, finalChoice: Boolean): com.intellij.openapi.ui.popup.PopupStep<*>? {
                                 val r = model.rows[rowIndex]
-                                val entry = when {
-                                    selectedValue.key.isBlank() -> IconSelectionService.Entry(IconSelectionService.Mode.DEFAULT, null)
-                                    selectedValue.key.startsWith("AllIcons") ->
-                                        IconSelectionService.Entry(IconSelectionService.Mode.ALL_ICONS, selectedValue.key)
-                                    selectedValue.key.startsWith("plugin:") -> {
-                                        val raw = selectedValue.key.removePrefix("plugin:")
-                                        IconSelectionService.Entry(IconSelectionService.Mode.PLUGIN_RESOURCE, raw)
-                                    }
-                                    selectedValue.key.startsWith("rcType:") -> {
-                                        val id = selectedValue.key.removePrefix("rcType:")
-                                        IconSelectionService.Entry(IconSelectionService.Mode.RC_TYPE, id)
-                                    }
-                                    else -> IconSelectionService.Entry(IconSelectionService.Mode.DEFAULT, null)
+                                // Construye la Entry según la clave; si es "Choose custom icon…" abre el FileChooser
+                                val entry = iconService.buildEntryFromKeyInteractive(comp, selectedValue.key)
+                                if (entry != null) {
+                                    iconService.setSelection(r.key, entry)
+                                    (comp as? JButton)?.icon = iconService.resolveIconFromSelection(entry) ?: AllIcons.Actions.Execute
                                 }
-                                iconService.setSelection(r.key, entry)
-                                (comp as? JButton)?.icon = iconService.resolveIconFromSelection(entry) ?: AllIcons.Actions.Execute
                                 stopCellEditing()
                                 return FINAL_CHOICE
                             }
