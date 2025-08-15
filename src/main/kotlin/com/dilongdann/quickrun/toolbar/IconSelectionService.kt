@@ -9,7 +9,6 @@ import com.intellij.openapi.components.Storage
 import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.IconLoader
-import com.intellij.util.SVGLoader
 import com.intellij.util.xmlb.annotations.Attribute
 import com.intellij.util.xmlb.annotations.MapAnnotation
 import com.intellij.util.xmlb.annotations.Property
@@ -98,12 +97,8 @@ class IconSelectionService(private val project: Project) : PersistentStateCompon
             val file = File(path)
             if (!file.exists()) return null
             val url = file.toURI().toURL()
-            if (path.lowercase().endsWith(".svg")) {
-                val img = SVGLoader.load(url, 1.0f)
-                ImageIcon(img)
-            } else {
-                ImageIcon(url)
-            }
+            // Cargar sólo imágenes rasterizadas soportadas por ImageIcon (p. ej. PNG)
+            ImageIcon(url)
         } catch (_: Throwable) {
             null
         }
@@ -147,10 +142,10 @@ class IconSelectionService(private val project: Project) : PersistentStateCompon
             /* chooseJarContents = */false,
             /* chooseMultiple = */false
         ).apply {
-            title = "Choose Custom Icon"
+            title = "Choose Custom Icon (PNG)"
             withFileFilter { vf ->
                 val ext = vf.extension?.lowercase()
-                ext == "svg" || ext == "png"
+                ext == "png"
             }
         }
 
