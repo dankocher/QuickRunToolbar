@@ -25,6 +25,9 @@ import javax.swing.table.DefaultTableCellRenderer
 import javax.swing.table.TableCellEditor
 import javax.swing.table.TableCellRenderer
 import javax.swing.TransferHandler
+import javax.swing.SwingUtilities
+import java.awt.Dimension
+import java.awt.Insets
 
 class QuickRunEditAction : AnAction("Edit", "Edit Quick Run Buttons", AllIcons.Actions.Edit), CustomComponentAction, DumbAware {
 
@@ -33,6 +36,7 @@ class QuickRunEditAction : AnAction("Edit", "Edit Quick Run Buttons", AllIcons.A
     override fun createCustomComponent(presentation: Presentation, place: String): JComponent {
         val btn = JButton("Edit", AllIcons.Actions.Edit)
         btn.putClientProperty("ActionToolbar.smallVariant", true)
+        btn.size.width = 28
         btn.addActionListener {
             val dataContext = DataManager.getInstance().getDataContext(btn)
             val project = CommonDataKeys.PROJECT.getData(dataContext) ?: return@addActionListener
@@ -63,10 +67,10 @@ private class QuickRunConfigDialog(private val project: Project) : DialogWrapper
         table = JBTable(model).apply {
             rowHeight = 28
             setSelectionMode(ListSelectionModel.SINGLE_SELECTION)
-            columnModel.getColumn(0).preferredWidth = 28
-            columnModel.getColumn(1).preferredWidth = 36
+            columnModel.getColumn(0).width = 28
+            columnModel.getColumn(1).width = 36
             columnModel.getColumn(2).preferredWidth = 300
-            columnModel.getColumn(3).preferredWidth = 80
+            columnModel.getColumn(3).width = 80
             // Renderers/Editors
             columnModel.getColumn(0).cellRenderer = HandleRenderer()
             columnModel.getColumn(1).cellRenderer = IconButtonRenderer(iconService)
@@ -186,19 +190,28 @@ private class QuickRunConfigDialog(private val project: Project) : DialogWrapper
     // Render handle
     private class HandleRenderer : TableCellRenderer {
         override fun getTableCellRendererComponent(table: JTable, value: Any?, isSelected: Boolean, hasFocus: Boolean, row: Int, column: Int): Component {
-            return JBLabel(AllIcons.General.Drag)
+            return JBLabel(AllIcons.General.Drag).apply {
+                horizontalAlignment = SwingConstants.CENTER
+                verticalAlignment = SwingConstants.CENTER
+                isOpaque = false
+                preferredSize = Dimension(24, 24)
+                minimumSize = preferredSize
+                maximumSize = preferredSize
+            }
         }
     }
 
     // Icono como botón (renderer)
-    private class IconButtonRenderer(private val iconService: IconSelectionService) : TableCellRenderer {
+    private class IconButtonRenderer(@Suppress("UNUSED_PARAMETER") private val iconService: IconSelectionService) : TableCellRenderer {
         override fun getTableCellRendererComponent(table: JTable, value: Any?, isSelected: Boolean, hasFocus: Boolean, row: Int, column: Int): Component {
             val icon = (value as? Icon) ?: AllIcons.Actions.Execute
-            return JButton(icon).apply {
-                putClientProperty("ActionToolbar.smallVariant", true)
-                isBorderPainted = false
-                isContentAreaFilled = false
-                isFocusable = false
+            return JBLabel(icon).apply {
+                horizontalAlignment = SwingConstants.CENTER
+                verticalAlignment = SwingConstants.CENTER
+                isOpaque = false
+                preferredSize = Dimension(24, 24)
+                minimumSize = preferredSize
+                maximumSize = preferredSize
             }
         }
     }
@@ -217,7 +230,7 @@ private class QuickRunConfigDialog(private val project: Project) : DialogWrapper
             val icon = (value as? Icon) ?: AllIcons.Actions.Execute
             button = JButton(icon).apply {
                 putClientProperty("ActionToolbar.smallVariant", true)
-                addActionListener { openPopup(this) }
+                addActionListener { SwingUtilities.invokeLater { openPopup(this) } }
             }
             return button!!
         }
@@ -225,27 +238,81 @@ private class QuickRunConfigDialog(private val project: Project) : DialogWrapper
         override fun getCellEditorValue(): Any? = null
 
         private fun openPopup(comp: JComponent) {
-            val allItems: List<IconItem> = IconItems.all()
-            val step = object : com.intellij.openapi.ui.popup.util.BaseListPopupStep<IconItem>("", allItems) {
-                override fun isSpeedSearchEnabled(): Boolean = true
-                override fun getTextFor(value: IconItem): String = value.displayName
-                override fun getIconFor(value: IconItem): Icon? = value.icon
-                override fun onChosen(selectedValue: IconItem, finalChoice: Boolean): com.intellij.openapi.ui.popup.PopupStep<*>? {
-                    val r = model.rows[rowIndex]
-                    val entry = if (selectedValue.key.isNotBlank()) {
-                        IconSelectionService.Entry(IconSelectionService.Mode.ALL_ICONS, selectedValue.key)
-                    } else {
-                        IconSelectionService.Entry(IconSelectionService.Mode.DEFAULT, null)
+            // Deshabilita el botón momentáneamente y carga íconos en background
+            comp.isEnabled = false
+            IconItems.allAsync(project) { allItems ->
+                SwingUtilities.invokeLater {
+                    try {
+                        val step = object : com.intellij.openapi.ui.popup.util.BaseListPopupStep<IconItem>("", allItems) {
+                            override fun isSpeedSearchEnabled(): Boolean = true
+                            override fun getTextFor(value: IconItem): String = value.displayName
+                            override fun getIconFor(value: IconItem): Icon? = value.icon
+                            override fun onChosen(selectedValue: IconItem, finalChoice: Boolean): com.intellij.openapi.ui.popup.PopupStep<*>? {
+                                val r = model.rows[rowIndex]
+                                val entry = when {
+                                    selectedValue.key.isBlank() -> IconSelectionService.Entry(IconSelectionService.Mode.DEFAULT, null)
+                                    selectedValue.key.startsWith("AllIcons") ->
+                                        IconSelectionService.Entry(IconSelectionService.Mode.ALL_ICONS, selectedValue.key)
+                                    selectedValue.key.startsWith("plugin:") -> {
+                                        val raw = selectedValue.key.removePrefix("plugin:")
+                                        IconSelectionService.Entry(IconSelectionService.Mode.PLUGIN_RESOURCE, raw)
+                                    }
+                                    selectedValue.key.startsWith("rcType:") -> {
+                                        val id = selectedValue.key.removePrefix("rcType:")
+                                        IconSelectionService.Entry(IconSelectionService.Mode.RC_TYPE, id)
+                                    }
+                                    else -> IconSelectionService.Entry(IconSelectionService.Mode.DEFAULT, null)
+                                }
+                                iconService.setSelection(r.key, entry)
+                                (comp as? JButton)?.icon = iconService.resolveIconFromSelection(entry) ?: AllIcons.Actions.Execute
+                                stopCellEditing()
+                                return FINAL_CHOICE
+                            }
+                        }
+                        val popup = JBPopupFactory.getInstance().createListPopup(step)
+                        val dataContext = DataManager.getInstance().getDataContext(comp)
+                        popup.showInBestPositionFor(dataContext)
+                    } finally {
+                        comp.isEnabled = true
                     }
-                    iconService.setSelection(r.key, entry)
-                    (comp as? JButton)?.icon = iconService.resolveIconFromSelection(entry) ?: AllIcons.Actions.Execute
-                    stopCellEditing()
-                    return FINAL_CHOICE
                 }
             }
-            val popup = JBPopupFactory.getInstance().createListPopup(step)
-            popup.showUnderneathOf(comp)
         }
+    }
+
+    // Checkbox fijo
+    private class FixedCheckBoxRenderer : TableCellRenderer {
+        private val check = JBCheckBox().apply {
+            isOpaque = false
+            horizontalAlignment = SwingConstants.CENTER
+            preferredSize = Dimension(20, 20)
+            minimumSize = preferredSize
+            maximumSize = preferredSize
+            text = null
+            isFocusPainted = false
+        }
+        override fun getTableCellRendererComponent(table: JTable, value: Any?, isSelected: Boolean, hasFocus: Boolean, row: Int, column: Int): Component {
+            check.isSelected = (value as? Boolean) == true
+            return check
+        }
+    }
+
+    private class FixedCheckBoxEditor : AbstractCellEditor(), TableCellEditor {
+        private val check = JBCheckBox().apply {
+            isOpaque = false
+            horizontalAlignment = SwingConstants.CENTER
+            preferredSize = Dimension(20, 20)
+            minimumSize = preferredSize
+            maximumSize = preferredSize
+            text = null
+            isFocusPainted = false
+            addActionListener { stopCellEditing() }
+        }
+        override fun getTableCellEditorComponent(table: JTable, value: Any?, isSelected: Boolean, row: Int, column: Int): Component {
+            check.isSelected = (value as? Boolean) == true
+            return check
+        }
+        override fun getCellEditorValue(): Any = check.isSelected
     }
 
     // DnD de filas

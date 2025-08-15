@@ -1,29 +1,124 @@
 package com.dilongdann.quickrun.toolbar
 
 import com.intellij.icons.AllIcons
+import com.intellij.ide.plugins.PluginManagerCore
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.progress.ProgressManager
+import com.intellij.openapi.progress.Task
+import com.intellij.openapi.progress.ProgressIndicator
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.extensions.PluginId
+import com.intellij.openapi.util.IconLoader
+import java.nio.file.Files
+import java.nio.file.Path
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.zip.ZipFile
 import javax.swing.Icon
 
 data class IconItem(val key: String, val icon: Icon?, val displayName: String)
 
 object IconItems {
-    // Construye la lista: "Default icon" + todos los AllIcons.<Group>.<Name> con su Icon
+    // Caché simple para no recalcular en cada apertura del popup
+    @Volatile
+    private var cached: List<IconItem>? = null
+    private val building = AtomicBoolean(false)
+
+    // Construye la lista: "Default icon" + AllIcons + iconos de plugins (carpetas /icons/**)
     fun all(): List<IconItem> {
-        val result = mutableListOf<IconItem>()
-        result.add(IconItem("", null, "Default icon")) // Default icon
-        result.addAll(collectAllIcons())
-        return result
+        cached?.let { return it }
+        // Devuelve una lista mínima al vuelo para no bloquear el EDT si alguien usa all() sincrónicamente
+        val minimal = mutableListOf<IconItem>()
+        minimal.add(IconItem("", null, "Default icon"))
+        minimal.addAll(collectAllIcons())
+        minimal.addAll(collectRunConfigurationIcons())
+        minimal.addAll(collectOwnPluginIcons())
+        return minimal.sortedBy { it.displayName }
+    }
+
+    // Carga rápida inmediata (Default + AllIcons) y construcción completa cacheada en background
+    fun allAsync(project: Project?, onReady: (List<IconItem>) -> Unit) {
+        cached?.let { onReady(it); return }
+
+        // Entrega inmediata: no bloquea el popup
+        val quick = mutableListOf<IconItem>().apply {
+            add(IconItem("", null, "Default icon"))
+            addAll(collectAllIcons())
+            addAll(collectRunConfigurationIcons())
+            addAll(collectOwnPluginIcons())
+        }.distinctBy { it.key to it.displayName }.sortedBy { it.displayName }
+        onReady(quick)
+
+        // Construcción completa (incluye iconos de plugins) en background para próximas aperturas
+        if (!building.compareAndSet(false, true)) {
+            return
+        }
+        ProgressManager.getInstance().run(object : Task.Backgroundable(project, "Loading IDE and plugin icons", false) {
+            private fun build(): List<IconItem> {
+                val result = mutableListOf<IconItem>()
+                result.add(IconItem("", null, "Default icon"))
+                result.addAll(collectAllIcons())
+                result.addAll(collectRunConfigurationIcons())
+                // Asegurar que los iconos del propio plugin estén disponibles aunque falle el escaneo global
+                result.addAll(collectOwnPluginIcons())
+                result.addAll(collectPluginIcons())
+                return result.distinctBy { it.key to it.displayName }.sortedBy { it.displayName }
+            }
+
+            override fun run(indicator: ProgressIndicator) {
+                indicator.text = "Scanning plugin icons…"
+                val list = build()
+                cached = list
+            }
+
+            override fun onFinished() {
+                building.set(false)
+            }
+
+            override fun onSuccess() {
+                // Intencionadamente no invocamos onReady aquí para evitar abrir un segundo popup.
+                // La próxima vez que se abra el selector, se usará 'cached' con la lista completa.
+            }
+        })
+    }
+
+    private fun collectRunConfigurationIcons(): List<IconItem> {
+        return runCatching {
+            val list = mutableListOf<IconItem>()
+            val types = com.intellij.execution.configurations.ConfigurationType.CONFIGURATION_TYPE_EP.extensionList
+            for (type in types) {
+                val id = type.id
+                val name = type.displayName
+                val icon = runCatching { type.icon }.getOrNull()
+                list.add(IconItem("rcType:$id", icon, name))
+            }
+            list
+        }.getOrElse { emptyList() }
+    }
+
+    // ID del propio plugin para ubicar sus recursos empaquetados
+    private const val THIS_PLUGIN_ID = "com.dilongdann.quickrun"
+
+    private fun collectOwnPluginIcons(): List<IconItem> {
+        return runCatching {
+            val descriptor = PluginManagerCore.getPlugin(PluginId.getId(THIS_PLUGIN_ID)) ?: return emptyList()
+            val pluginPath = descriptor.pluginPath
+            if (Files.isDirectory(pluginPath)) {
+                scanIconsInDirectory(THIS_PLUGIN_ID, pluginPath)
+            } else {
+                scanIconsInZip(THIS_PLUGIN_ID, pluginPath)
+            }
+        }.getOrElse { emptyList() }
     }
 
     private fun collectAllIcons(): List<IconItem> {
         val list = mutableListOf<IconItem>()
         fun traverse(clazz: Class<*>, prefix: String) {
-            // Campos públicos tipo Icon
             runCatching {
                 clazz.fields.forEach { f ->
                     if (Icon::class.java.isAssignableFrom(f.type)) {
                         runCatching {
                             val icon = f.get(null) as? Icon
-                            val key = if (prefix.isEmpty()) f.name else "$prefix.${f.name}"
+                            val key = if (prefix.isEmpty()) f.name else "$prefix.${f.name}" // p.ej. AllIcons.Actions.Execute
                             val nameFromPath = icon?.let { tryGetOriginalPath(it) }?.let { pathToHumanName(it) }
                             val display = nameFromPath ?: humanizeSimpleName(f.name)
                             list.add(IconItem(key, icon, display))
@@ -31,7 +126,6 @@ object IconItems {
                     }
                 }
             }
-            // Clases anidadas
             runCatching {
                 clazz.declaredClasses.forEach { nested ->
                     val p = if (prefix.isEmpty()) nested.simpleName ?: "" else "$prefix.${nested.simpleName}"
@@ -40,8 +134,72 @@ object IconItems {
             }
         }
         traverse(AllIcons::class.java, "AllIcons")
-        // Orden alfabético por nombre legible
-        return list.sortedBy { it.displayName }
+        return list
+    }
+
+    private fun collectPluginIcons(): List<IconItem> {
+        val out = mutableListOf<IconItem>()
+        val plugins = PluginManagerCore.getPluginSet().allPlugins
+        for (descriptor in plugins) {
+            // Sólo plugins habilitados
+            if (!descriptor.isEnabled) continue
+            val pluginId = descriptor.pluginId.idString
+            val pluginPath = descriptor.pluginPath
+            if (Files.isDirectory(pluginPath)) {
+                out += scanIconsInDirectory(pluginId, pluginPath)
+            } else {
+                out += scanIconsInZip(pluginId, pluginPath)
+            }
+        }
+        return out
+    }
+
+    private fun scanIconsInDirectory(pluginId: String, root: Path): List<IconItem> {
+        val res = mutableListOf<IconItem>()
+        runCatching {
+            Files.walk(root).use { stream ->
+                stream.filter { Files.isRegularFile(it) }.forEach { p ->
+                    val name = p.fileName.toString().lowercase()
+                    if ((name.endsWith(".svg") || name.endsWith(".png")) && p.toString().contains("${java.io.File.separator}icons${java.io.File.separator}")) {
+                        val rel = root.relativize(p).toString().replace(java.io.File.separatorChar, '/')
+                        val path = if (rel.startsWith("/")) rel else "/$rel"
+                        val key = "plugin:$pluginId::$path"
+                        val icon = runCatching {
+                            // Cargar icono desde el classloader del plugin si existe, si no, desde URL
+                            val cl = PluginManagerCore.getPlugin(PluginId.getId(pluginId))?.pluginClassLoader
+                            if (cl != null) IconLoader.getIcon(path, cl) else null
+                        }.getOrNull()
+                        val display = pathToHumanName(path)
+                        res.add(IconItem(key, icon, display))
+                    }
+                }
+            }
+        }
+        return res
+    }
+
+    private fun scanIconsInZip(pluginId: String, root: Path): List<IconItem> {
+        val res = mutableListOf<IconItem>()
+        runCatching {
+            ZipFile(root.toFile()).use { zip ->
+                val entries = zip.entries()
+                while (entries.hasMoreElements()) {
+                    val e = entries.nextElement()
+                    val name = e.name.lowercase()
+                    if (!e.isDirectory && (name.endsWith(".svg") || name.endsWith(".png")) && name.contains("icons/")) {
+                        val path = if (e.name.startsWith("/")) e.name else "/${e.name}"
+                        val key = "plugin:$pluginId::$path"
+                        val icon = runCatching {
+                            val cl = PluginManagerCore.getPlugin(PluginId.getId(pluginId))?.pluginClassLoader
+                            if (cl != null) IconLoader.getIcon(path, cl) else null
+                        }.getOrNull()
+                        val display = pathToHumanName(path)
+                        res.add(IconItem(key, icon, display))
+                    }
+                }
+            }
+        }
+        return res
     }
 
     // Intenta recuperar la ruta original del recurso (por ejemplo: /icons/actions/execute.svg)
@@ -50,7 +208,6 @@ object IconItems {
             val m = icon.javaClass.methods.firstOrNull { it.name == "getOriginalPath" && it.parameterCount == 0 }
             (m?.invoke(icon) as? String)
         } catch (_: Throwable) {
-            // algunas implementaciones usan campo privado
             try {
                 val f = icon.javaClass.declaredFields.firstOrNull { it.name.contains("OriginalPath", ignoreCase = true) }
                 f?.let {
@@ -64,19 +221,17 @@ object IconItems {
     }
 
     private fun pathToHumanName(path: String): String {
-        // extrae el nombre de archivo sin extensión y lo humaniza
         val file = path.substringAfterLast('/').substringBeforeLast('.')
         return humanizeSimpleName(file)
     }
 
     private fun humanizeSimpleName(raw: String): String {
-        // Reemplaza separadores comunes y divide camelCase
         var s = raw
             .replace('-', ' ')
             .replace('_', ' ')
         s = s.replace(Regex("(?<=[a-z0-9])(?=[A-Z])"), " ")
         s = s.replace(Regex("(?<=[A-Z])(?=[A-Z][a-z])"), " ")
-        val acronyms = setOf("API", "ADB", "CPU", "GPU", "USB", "HTTP", "HTTPS", "XML", "SQL", "SDK", "APK", "JVM", "JRE", "JDK")
+        val acronyms = setOf("API", "ADB", "CPU", "GPU", "USB", "HTTP", "HTTPS", "XML", "SQL", "SDK", "APK", "JVM", "JRE", "JDK", "NPM")
         val words = s.trim().split(Regex("\\s+")).filter { it.isNotBlank() }.map { w ->
             val up = w.uppercase()
             when {

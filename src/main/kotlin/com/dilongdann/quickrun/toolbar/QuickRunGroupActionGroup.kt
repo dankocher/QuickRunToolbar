@@ -10,6 +10,12 @@ import com.intellij.openapi.project.DumbAware
 
 class QuickRunActionGroup : ActionGroup(), DumbAware {
 
+    @Volatile
+    private var cachedModel: List<Pair<String, String>> = emptyList() // (actualName, displayName)
+    @Volatile
+    private var cachedActions: Array<AnAction> = emptyArray()
+    private val editAction = QuickRunEditAction()
+
     override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
 
     override fun getChildren(e: AnActionEvent?): Array<AnAction> {
@@ -22,19 +28,29 @@ class QuickRunActionGroup : ActionGroup(), DumbAware {
             .filter { !it.isTemporary }
             .associateBy { IconSelectionService.configKey(it.name, it.type.id) }
 
-        val actions = mutableListOf<AnAction>()
-        // Solo mostrar los habilitados, en el orden guardado
-        cfgService.getItems().forEach { item ->
-            if (!item.enabled) return@forEach
-            val settings = byKey[item.key] ?: return@forEach
-            val displayName = item.displayName ?: settings.name
-            actions.add(QuickRunAction(settings.name, displayName))
+        // Modelo: solo habilitados y existentes, en orden guardado
+        val model: List<Pair<String, String>> = buildList {
+            cfgService.getItems().forEach { item ->
+                if (!item.enabled) return@forEach
+                val settings = byKey[item.key] ?: return@forEach
+                val displayName = item.displayName ?: settings.name
+                add(settings.name to displayName)
+            }
         }
 
-        // Botón Edit siempre al final
-        actions.add(QuickRunEditAction())
+        if (model == cachedModel) {
+            return cachedActions
+        }
 
-        return actions.toTypedArray()
+        val actions = ArrayList<AnAction>(model.size + 1)
+        model.forEach { (actual, display) ->
+            actions.add(QuickRunAction(actual, display))
+        }
+        actions.add(editAction)
+
+        cachedModel = model
+        cachedActions = actions.toTypedArray()
+        return cachedActions
     }
 
     override fun update(e: AnActionEvent) {

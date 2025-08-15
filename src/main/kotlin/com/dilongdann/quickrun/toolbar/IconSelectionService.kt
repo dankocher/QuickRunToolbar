@@ -1,12 +1,14 @@
 package com.dilongdann.quickrun.toolbar
 
 import com.intellij.icons.AllIcons
+import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
-import com.intellij.openapi.components.StoragePathMacros
+import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.IconLoader
 import com.intellij.util.SVGLoader
 import com.intellij.util.xmlb.annotations.Attribute
 import com.intellij.util.xmlb.annotations.MapAnnotation
@@ -27,7 +29,7 @@ class IconSelectionService(private val project: Project) : PersistentStateCompon
         fun configKey(name: String, typeId: String): String = "$typeId::$name"
     }
 
-    enum class Mode { DEFAULT, ALL_ICONS, FILE }
+    enum class Mode { DEFAULT, ALL_ICONS, FILE, PLUGIN_RESOURCE, RC_TYPE }
 
     data class Entry(
         @Attribute var mode: Mode = Mode.DEFAULT,
@@ -65,6 +67,23 @@ class IconSelectionService(private val project: Project) : PersistentStateCompon
             Mode.DEFAULT -> null
             Mode.ALL_ICONS -> entry.value?.let { resolveAllIconsKey(it) }
             Mode.FILE -> entry.value?.let { loadIconFromFile(it) }
+            Mode.PLUGIN_RESOURCE -> entry.value?.let { resolvePluginResource(it) }
+            Mode.RC_TYPE -> entry.value?.let { resolveRunConfigurationTypeIcon(it) }
+        }
+    }
+
+    // value format: "<pluginId>::/icons/....svg"
+    private fun resolvePluginResource(value: String): Icon? {
+        val parts = value.split("::", limit = 2)
+        if (parts.size != 2) return null
+        val pluginId = parts[0]
+        val path = parts[1]
+        return try {
+            val descriptor = PluginManagerCore.getPlugin(PluginId.getId(pluginId)) ?: return null
+            val cl = descriptor.pluginClassLoader ?: return null
+            IconLoader.getIcon(path, cl)
+        } catch (_: Throwable) {
+            null
         }
     }
 
@@ -79,6 +98,15 @@ class IconSelectionService(private val project: Project) : PersistentStateCompon
             } else {
                 ImageIcon(url)
             }
+        } catch (_: Throwable) {
+            null
+        }
+    }
+
+    private fun resolveRunConfigurationTypeIcon(id: String): Icon? {
+        return try {
+            val type = com.intellij.execution.configurations.ConfigurationTypeUtil.findConfigurationType(id)
+            type?.icon
         } catch (_: Throwable) {
             null
         }
