@@ -7,6 +7,7 @@
         <Item key="GradleRunConfiguration::Build" enabled="true" />
         <Item key="GradleRunConfiguration::Run Ide" enabled="true" />
         <Item key="ShConfigurationType::update_version" displayName="Version" enabled="true" />
+        <Item key="GradleRunConfiguration::Clean" enabled="true" />
       </list>
     </items>
   </component>
@@ -20,6 +21,11 @@
       <cfg id="GradleRunConfiguration::Build Plugin">
         <value>
           <Entry mode="ALL_ICONS" value="AllIcons.Toolwindows.ToolWindowBuild" />
+        </value>
+      </cfg>
+      <cfg id="GradleRunConfiguration::Clean">
+        <value>
+          <Entry mode="PLUGIN_RESOURCE" value="com.dilongdann.quickrun::/icons/gradle.svg" />
         </value>
       </cfg>
       <cfg id="GradleRunConfiguration::Run Ide">
