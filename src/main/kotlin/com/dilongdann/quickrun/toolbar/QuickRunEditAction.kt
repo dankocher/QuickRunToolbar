@@ -51,7 +51,7 @@ class QuickRunEditAction : AnAction("Edit", "Edit Quick Run Buttons", AllIcons.A
         btn.addActionListener {
             val dataContext = DataManager.getInstance().getDataContext(btn)
             val project = CommonDataKeys.PROJECT.getData(dataContext) ?: return@addActionListener
-            actionPerformed(AnActionEvent.createFromAnAction(this, null, place, dataContext))
+            QuickRunConfigDialog(project).show()
         }
         return btn
     }
@@ -81,7 +81,7 @@ private class QuickRunConfigDialog(private val project: Project) : DialogWrapper
             columnModel.getColumn(0).width = 28
             columnModel.getColumn(1).width = 36
             columnModel.getColumn(2).preferredWidth = 300
-            columnModel.getColumn(3).width = 90   // Show Name
+            columnModel.getColumn(3).width = 100   // Show Name
             columnModel.getColumn(4).width = 80   // Enabled
             // Renderers/Editors
             columnModel.getColumn(0).cellRenderer = HandleRenderer()

@@ -12,15 +12,16 @@ import com.intellij.openapi.util.IconLoader
 import com.intellij.util.xmlb.annotations.Attribute
 import com.intellij.util.xmlb.annotations.MapAnnotation
 import com.intellij.util.xmlb.annotations.Property
-import java.io.File
 import javax.swing.Icon
-import javax.swing.ImageIcon
 import com.intellij.openapi.fileChooser.FileChooser
 import com.intellij.openapi.fileChooser.FileChooserDescriptor
 import com.intellij.openapi.vfs.VfsUtilCore
 import javax.swing.JComponent
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ModalityState
+import com.intellij.openapi.diagnostic.Logger
+import com.intellij.notification.NotificationGroupManager
+import com.intellij.notification.NotificationType
 
 @Service(Service.Level.PROJECT)
 @State(
@@ -49,6 +50,7 @@ class IconSelectionService(private val project: Project) : PersistentStateCompon
     }
 
     private var myState: State = State()
+    private val logger: Logger = Logger.getInstance(IconSelectionService::class.java)
 
     override fun getState(): State = myState
 
@@ -71,7 +73,7 @@ class IconSelectionService(private val project: Project) : PersistentStateCompon
         return when (entry.mode) {
             Mode.DEFAULT -> null
             Mode.ALL_ICONS -> entry.value?.let { resolveAllIconsKey(it) }
-            Mode.FILE -> entry.value?.let { loadIconFromFile(it) }
+            Mode.FILE -> null
             Mode.PLUGIN_RESOURCE -> entry.value?.let { resolvePluginResource(it) }
             Mode.RC_TYPE -> entry.value?.let { resolveRunConfigurationTypeIcon(it) }
         }
@@ -87,18 +89,6 @@ class IconSelectionService(private val project: Project) : PersistentStateCompon
             val descriptor = PluginManagerCore.getPlugin(PluginId.getId(pluginId)) ?: return null
             val cl = descriptor.pluginClassLoader ?: return null
             IconLoader.getIcon(path, cl)
-        } catch (_: Throwable) {
-            null
-        }
-    }
-
-    private fun loadIconFromFile(path: String): Icon? {
-        return try {
-            val file = File(path)
-            if (!file.exists()) return null
-            val url = file.toURI().toURL()
-            // Cargar sólo imágenes rasterizadas soportadas por ImageIcon (p. ej. PNG)
-            ImageIcon(url)
         } catch (_: Throwable) {
             null
         }
@@ -142,10 +132,10 @@ class IconSelectionService(private val project: Project) : PersistentStateCompon
             /* chooseJarContents = */false,
             /* chooseMultiple = */false
         ).apply {
-            title = "Choose Custom Icon (PNG)"
+            title = "Choose Custom Icon (SVG or PNG)"
             withFileFilter { vf ->
                 val ext = vf.extension?.lowercase()
-                ext == "png"
+                ext == "svg" || ext == "png"
             }
         }
 
@@ -171,7 +161,6 @@ class IconSelectionService(private val project: Project) : PersistentStateCompon
     fun buildEntryFromKeyInteractive(parent: JComponent?, selectedKey: String): Entry? {
         return when {
             selectedKey.isEmpty() -> Entry(Mode.DEFAULT, null)
-            selectedKey == IconItems.CHOOSE_FILE_KEY -> chooseIconFile(parent)
             selectedKey.startsWith("plugin:") -> {
                 // El valor esperado por PLUGIN_RESOURCE es "<pluginId>::/ruta"
                 val v = selectedKey.removePrefix("plugin:")

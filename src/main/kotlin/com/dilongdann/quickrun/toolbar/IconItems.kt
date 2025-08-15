@@ -23,16 +23,12 @@ object IconItems {
     private var cached: List<IconItem>? = null
     private val building = AtomicBoolean(false)
 
-    // Clave sentinela para lanzar el selector de archivo desde el editor
-    const val CHOOSE_FILE_KEY: String = "file:CHOOSE"
-
     // Construye la lista: "Default icon" + AllIcons + iconos de plugins (carpetas /icons/**)
     fun all(): List<IconItem> {
         cached?.let { return it }
         // Entradas fijadas al principio
         val top = listOf(
-            IconItem("", null, "Default icon"),
-            IconItem(CHOOSE_FILE_KEY, null, "Choose custom icon…")
+            IconItem("", null, "Default icon")
         )
         // Resto de entradas
         val rest = mutableListOf<IconItem>()
@@ -54,8 +50,7 @@ object IconItems {
 
         // Entradas fijadas al principio
         val top = listOf(
-            IconItem("", null, "Default icon"),
-            IconItem(CHOOSE_FILE_KEY, null, "Choose custom icon…")
+            IconItem("", null, "Default icon")
         )
 
         // Entrega inmediata: no bloquea el popup
@@ -78,8 +73,7 @@ object IconItems {
         ProgressManager.getInstance().run(object : Task.Backgroundable(project, "Loading IDE and plugin icons", false) {
             private fun build(): List<IconItem> {
                 val topBg = listOf(
-                    IconItem("", null, "Default icon"),
-                    IconItem(CHOOSE_FILE_KEY, null, "Choose custom icon…")
+                    IconItem("", null, "Default icon")
                 )
                 val rest = mutableListOf<IconItem>()
                 rest.addAll(collectAllIcons())
