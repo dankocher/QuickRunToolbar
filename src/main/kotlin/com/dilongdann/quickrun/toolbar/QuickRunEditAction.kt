@@ -41,6 +41,13 @@ class QuickRunEditAction : AnAction("Edit", "Edit Quick Run Buttons", AllIcons.A
             isFocusable = false
             margin = Insets(0, 0, 0, 0)
         }
+        // Forzar botón cuadrado: ancho = alto preferido
+        val h = btn.preferredSize.height
+        val square = Dimension(h, h)
+        btn.minimumSize = square
+        btn.maximumSize = square
+        btn.preferredSize = square
+
         btn.addActionListener {
             val dataContext = DataManager.getInstance().getDataContext(btn)
             val project = CommonDataKeys.PROJECT.getData(dataContext) ?: return@addActionListener
