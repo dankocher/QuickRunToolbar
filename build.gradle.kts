@@ -1,10 +1,11 @@
 plugins {
     id("org.jetbrains.intellij") version "1.17.3"
     kotlin("jvm") version "2.1.0"
+    id("com.github.johnrengelman.shadow") version "8.1.1"
 }
 
 group = "com.dilongdann.quickrun"
-version = "0.2.1"
+version = "0.2.3"
 
 repositories {
     mavenCentral()
@@ -27,12 +28,3 @@ kotlin {
     jvmToolchain(17)
 }
 
-// Optional: run IDE for manual testing
-tasks.runIde {
-    autoReloadPlugins.set(true)
-}
-
-// No definimos SearchableConfigurable, desactivar generación de opciones de búsqueda
-tasks.buildSearchableOptions {
-    enabled = false
-}
