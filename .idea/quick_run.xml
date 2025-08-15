@@ -3,8 +3,8 @@
   <component name="QuickRunConfigService">
     <items>
       <list>
-        <Item key="GradleRunConfiguration::Build Plugin" enabled="true" />
-        <Item key="GradleRunConfiguration::Build" enabled="true" />
+        <Item key="GradleRunConfiguration::Build Plugin" enabled="true" showName="false" />
+        <Item key="GradleRunConfiguration::Build" enabled="true" showName="false" />
         <Item key="GradleRunConfiguration::Run Ide" enabled="true" />
         <Item key="ShConfigurationType::update_version" displayName="Version" enabled="true" />
         <Item key="GradleRunConfiguration::Clean" enabled="true" />
