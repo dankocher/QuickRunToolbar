@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "com.dilongdann.quickrun"
-version = "0.1.15"
+version = "0.2.1"
 
 repositories {
     mavenCentral()
