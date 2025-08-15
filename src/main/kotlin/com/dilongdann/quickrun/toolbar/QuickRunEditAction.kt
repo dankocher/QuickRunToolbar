@@ -34,9 +34,13 @@ class QuickRunEditAction : AnAction("Edit", "Edit Quick Run Buttons", AllIcons.A
     override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
 
     override fun createCustomComponent(presentation: Presentation, place: String): JComponent {
-        val btn = JButton("Edit", AllIcons.Actions.Edit)
-        btn.putClientProperty("ActionToolbar.smallVariant", true)
-        btn.size.width = 28
+        val btn = JButton(AllIcons.Actions.Edit).apply {
+            text = null
+            putClientProperty("ActionToolbar.smallVariant", true)
+            toolTipText = presentation.text ?: "Edit Quick Run Buttons"
+            isFocusable = false
+            margin = Insets(0, 0, 0, 0)
+        }
         btn.addActionListener {
             val dataContext = DataManager.getInstance().getDataContext(btn)
             val project = CommonDataKeys.PROJECT.getData(dataContext) ?: return@addActionListener
@@ -70,7 +74,8 @@ private class QuickRunConfigDialog(private val project: Project) : DialogWrapper
             columnModel.getColumn(0).width = 28
             columnModel.getColumn(1).width = 36
             columnModel.getColumn(2).preferredWidth = 300
-            columnModel.getColumn(3).width = 80
+            columnModel.getColumn(3).width = 90   // Show Name
+            columnModel.getColumn(4).width = 80   // Enabled
             // Renderers/Editors
             columnModel.getColumn(0).cellRenderer = HandleRenderer()
             columnModel.getColumn(1).cellRenderer = IconButtonRenderer(iconService)
@@ -79,6 +84,8 @@ private class QuickRunConfigDialog(private val project: Project) : DialogWrapper
             columnModel.getColumn(2).cellEditor = DefaultCellEditor(JBTextField())
             columnModel.getColumn(3).cellRenderer = getDefaultRenderer(Boolean::class.java)
             columnModel.getColumn(3).cellEditor = DefaultCellEditor(JCheckBox())
+            columnModel.getColumn(4).cellRenderer = getDefaultRenderer(Boolean::class.java)
+            columnModel.getColumn(4).cellEditor = DefaultCellEditor(JCheckBox())
             // DnD filas
             dragEnabled = true
             dropMode = DropMode.INSERT_ROWS
@@ -100,7 +107,12 @@ private class QuickRunConfigDialog(private val project: Project) : DialogWrapper
     override fun doOKAction() {
         try {
             val items = model.rows.map { row ->
-                QuickRunConfigService.Item(row.key, if (row.displayName.isNullOrBlank()) null else row.displayName, row.enabled)
+                QuickRunConfigService.Item(
+                    row.key,
+                    if (row.displayName.isNullOrBlank()) null else row.displayName,
+                    row.enabled,
+                    row.showName
+                )
             }
             cfgService.replaceAllInOrder(items)
             super.doOKAction()
@@ -114,6 +126,7 @@ private class QuickRunConfigDialog(private val project: Project) : DialogWrapper
         val typeId: String,
         val realName: String,
         var displayName: String?,
+        var showName: Boolean,
         var enabled: Boolean
     )
 
@@ -130,20 +143,20 @@ private class QuickRunConfigDialog(private val project: Project) : DialogWrapper
         val out = mutableListOf<Row>()
         saved.forEach { item ->
             val s = byKey[item.key] ?: return@forEach
-            out.add(Row(item.key, s.type.id, s.name, item.displayName, item.enabled))
+            out.add(Row(item.key, s.type.id, s.name, item.displayName, item.showName, item.enabled))
         }
         // Añadimos los que no estén guardados al final, desactivados por defecto
         settings.forEach { s ->
             val key = IconSelectionService.configKey(s.name, s.type.id)
             if (out.none { it.key == key }) {
-                out.add(Row(key, s.type.id, s.name, null, false))
+                out.add(Row(key, s.type.id, s.name, null, true, false))
             }
         }
         return out
     }
 
     private class RowsModel(val rows: MutableList<Row>, private val iconService: IconSelectionService) : AbstractTableModel() {
-        private val columns = arrayOf(" ", "Icon", "Name", "Enabled")
+        private val columns = arrayOf(" ", "Icon", "Name", "Show Name", "Enabled")
 
         override fun getRowCount(): Int = rows.size
         override fun getColumnCount(): Int = columns.size
@@ -153,6 +166,7 @@ private class QuickRunConfigDialog(private val project: Project) : DialogWrapper
             1 -> Icon::class.java
             2 -> String::class.java
             3 -> Boolean::class.java
+            4 -> Boolean::class.java
             else -> Any::class.java
         }
 
@@ -164,7 +178,8 @@ private class QuickRunConfigDialog(private val project: Project) : DialogWrapper
                 0 -> AllIcons.General.Drag
                 1 -> iconService.resolveIconFromSelection(iconService.getSelection(r.key)) ?: AllIcons.Actions.Execute
                 2 -> r.displayName ?: r.realName
-                3 -> r.enabled
+                3 -> r.showName
+                4 -> r.enabled
                 else -> null
             }
         }
@@ -173,7 +188,8 @@ private class QuickRunConfigDialog(private val project: Project) : DialogWrapper
             val r = rows[rowIndex]
             when (columnIndex) {
                 2 -> r.displayName = (aValue as? String)?.takeIf { it.isNotBlank() }
-                3 -> r.enabled = (aValue as? Boolean) == true
+                3 -> r.showName = (aValue as? Boolean) == true
+                4 -> r.enabled = (aValue as? Boolean) == true
             }
             fireTableRowsUpdated(rowIndex, rowIndex)
         }

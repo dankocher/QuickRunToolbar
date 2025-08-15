@@ -24,7 +24,8 @@ class QuickRunConfigService(private val project: Project) : PersistentStateCompo
     class Item(
         @Attribute var key: String = "",                 // typeId::name
         @Attribute var displayName: String? = null,      // null => usar nombre real
-        @Attribute var enabled: Boolean = false          // visible en la toolbar
+        @Attribute var enabled: Boolean = false,         // visible en la toolbar
+        @Attribute var showName: Boolean = true          // mostrar el nombre junto al icono
     )
 
     private var myState = State()
@@ -43,6 +44,7 @@ class QuickRunConfigService(private val project: Project) : PersistentStateCompo
             myState.items[found].displayName = displayName
             myState.items[found].enabled = enabled
         } else {
+            // showName queda a true por defecto
             myState.items.add(Item(key, displayName, enabled))
         }
     }

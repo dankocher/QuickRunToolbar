@@ -11,7 +11,7 @@ import com.intellij.openapi.project.DumbAware
 class QuickRunActionGroup : ActionGroup(), DumbAware {
 
     @Volatile
-    private var cachedModel: List<Pair<String, String>> = emptyList() // (actualName, displayName)
+    private var cachedModel: List<Triple<String, String, Boolean>> = emptyList() // (actualName, displayName, showName)
     @Volatile
     private var cachedActions: Array<AnAction> = emptyArray()
     private val editAction = QuickRunEditAction()
@@ -29,12 +29,12 @@ class QuickRunActionGroup : ActionGroup(), DumbAware {
             .associateBy { IconSelectionService.configKey(it.name, it.type.id) }
 
         // Modelo: solo habilitados y existentes, en orden guardado
-        val model: List<Pair<String, String>> = buildList {
+        val model: List<Triple<String, String, Boolean>> = buildList {
             cfgService.getItems().forEach { item ->
                 if (!item.enabled) return@forEach
                 val settings = byKey[item.key] ?: return@forEach
                 val displayName = item.displayName ?: settings.name
-                add(settings.name to displayName)
+                add(Triple(settings.name, displayName, item.showName))
             }
         }
 
@@ -43,8 +43,8 @@ class QuickRunActionGroup : ActionGroup(), DumbAware {
         }
 
         val actions = ArrayList<AnAction>(model.size + 1)
-        model.forEach { (actual, display) ->
-            actions.add(QuickRunAction(actual, display))
+        model.forEach { (actual, display, showName) ->
+            actions.add(QuickRunAction(actual, display, showName))
         }
         actions.add(editAction)
 

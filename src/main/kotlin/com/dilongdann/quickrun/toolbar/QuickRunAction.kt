@@ -17,8 +17,9 @@ import java.awt.event.ActionListener
 import javax.swing.Icon
 import javax.swing.JButton
 import javax.swing.JComponent
+import com.intellij.util.ui.JBUI
 
-class QuickRunAction(private val actualName: String, private val displayName: String) :
+class QuickRunAction(private val actualName: String, private val displayName: String, private val showName: Boolean) :
     com.intellij.openapi.actionSystem.AnAction(displayName, "Run \"$actualName\"", AllIcons.Actions.Execute),
     CustomComponentAction,
     DumbAware {
@@ -28,7 +29,7 @@ class QuickRunAction(private val actualName: String, private val displayName: St
     override fun update(e: AnActionEvent) {
         val project = e.project
         e.presentation.icon = resolveIcon(project, actualName)
-        e.presentation.text = displayName
+        e.presentation.text = if (showName) displayName else ""
         e.presentation.description = "Run \"$actualName\""
         e.presentation.isEnabledAndVisible = true
     }
@@ -39,10 +40,19 @@ class QuickRunAction(private val actualName: String, private val displayName: St
     }
 
     override fun createCustomComponent(presentation: Presentation, place: String): JComponent {
-        val button = JButton(toHtmlPreserveCase(displayName), AllIcons.Actions.Execute)
+        val hasText = showName
+        val button = if (hasText) {
+            JButton(toHtmlPreserveCase(displayName), AllIcons.Actions.Execute)
+        } else {
+            JButton(AllIcons.Actions.Execute).apply { text = null }
+        }
         button.toolTipText = presentation.description ?: "Run \"$actualName\""
         button.putClientProperty("ActionToolbar.smallVariant", true)
-//        button.iconTextGap = 10
+        button.iconTextGap = JBUI.scale(2)
+        if (!hasText) {
+            button.horizontalAlignment = JButton.CENTER
+            button.horizontalTextPosition = JButton.CENTER
+        }
         button.addActionListener(ActionListener {
             val dataContext = DataManager.getInstance().getDataContext(button)
             val project = CommonDataKeys.PROJECT.getData(dataContext) ?: return@ActionListener
@@ -53,9 +63,16 @@ class QuickRunAction(private val actualName: String, private val displayName: St
 
     override fun updateCustomComponent(component: JComponent, presentation: Presentation) {
         (component as? JButton)?.let { btn ->
-            btn.text = toHtmlPreserveCase(presentation.text ?: displayName)
+            if (showName) {
+                btn.text = toHtmlPreserveCase(presentation.text ?: displayName)
+            } else {
+                btn.text = null
+                btn.horizontalAlignment = JButton.CENTER
+                btn.horizontalTextPosition = JButton.CENTER
+            }
             btn.icon = presentation.icon ?: AllIcons.Actions.Execute
             btn.toolTipText = presentation.description
+            btn.iconTextGap = JBUI.scale(2)
         }
     }
 
