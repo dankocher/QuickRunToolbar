@@ -1,15 +1,25 @@
-# QuickRun
+# Quick Run Toolbar
 
-QuickRun puts your favorite Run/Debug configurations right on the Main Toolbar as clickable buttons — one click to run, zero context switching.
+Quick Run Toolbar puts your favorite Run/Debug configurations right on the Main Toolbar as clickable buttons — one click to run, zero context switching.
 
 ## Features
-- One‑click run from the Main Toolbar.
-- Choose which configurations appear.
+- Buttons on the Main Toolbar (New UI and Classic UI).
+- Pick which Run/Debug configurations appear.
 - Reorder buttons with drag & drop.
-- Assign a custom icon to each button.
+- Custom icon per button (SVG/PNG), light/dark aware.
 - Optional text label per button (show/hide).
-- Works with any Run/Debug Configuration type.
-- Non‑destructive: uses your existing configurations without modifying them.
+- Enable/disable per button without removing the configuration.
+- Per‑project settings; non‑destructive (doesn’t modify your Run/Debug configurations).
+- Works with any Run/Debug configuration type.
+- Built‑in icon picker with search + “Choose from file…” support.
+
+## Screenshots
+
+[//]: # (![Main Toolbar buttons]&#40;docs/images/screenshot1.png&#41;)
+![Icon picker and editor](docs/images/screenshot2.png)
+
+[//]: # (![Reorder with drag & drop]&#40;docs/images/screenshot3.png&#41;)
+![Run action in action](docs/images/screenshot4.png)
 
 ## Installation
 - From the IDE:
@@ -75,3 +85,6 @@ Commands:
 
 ## Support
 If you find issues or have feature requests, please open an issue in your repository or share feedback via the IDE’s plugin details page.
+
+## License
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
