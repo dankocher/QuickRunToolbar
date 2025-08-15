@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="QuickRunConfigService">
+    <items>
+      <list>
+        <Item key="GradleRunConfiguration::Build" enabled="true" />
+        <Item key="GradleRunConfiguration::Build Plugin" enabled="true" />
+        <Item key="GradleRunConfiguration::Run Ide" enabled="true" />
+        <Item key="ShConfigurationType::Unnamed" />
+      </list>
+    </items>
+  </component>
+</project>
