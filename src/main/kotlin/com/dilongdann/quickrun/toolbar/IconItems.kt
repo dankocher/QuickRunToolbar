@@ -174,22 +174,9 @@ object IconItems {
     }
 
     private fun collectPluginIcons(): List<IconItem> {
-        val out = mutableListOf<IconItem>()
-        val plugins = PluginManagerCore.getPluginSet().allPlugins
-        for (descriptor in plugins) {
-            // Sólo plugins habilitados
-            if (!descriptor.isEnabled) continue
-            val pluginId = descriptor.pluginId.idString
-            val pluginPath = descriptor.pluginPath
-            if (Files.isDirectory(pluginPath)) {
-                out += scanIconsInDirectory(pluginId, pluginPath)
-                // Recursos empaquetados en jars dentro de /lib
-                out += scanIconsInPluginLibJars(pluginId, pluginPath)
-            } else {
-                out += scanIconsInZip(pluginId, pluginPath)
-            }
-        }
-        return out
+        // Para evitar uso de APIs internas/sensibles entre versiones, no se escanean iconos de otros plugins.
+        // La lista de iconos mostrará AllIcons, iconos de tipos de Run Configuration y los del propio plugin.
+        return emptyList()
     }
 
     private fun scanIconsInDirectory(pluginId: String, root: Path): List<IconItem> {
