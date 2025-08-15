@@ -221,7 +221,7 @@ private class QuickRunConfigDialog(private val project: Project) : DialogWrapper
     private class IconButtonRenderer(@Suppress("UNUSED_PARAMETER") private val iconService: IconSelectionService) : TableCellRenderer {
         override fun getTableCellRendererComponent(table: JTable, value: Any?, isSelected: Boolean, hasFocus: Boolean, row: Int, column: Int): Component {
             val icon = (value as? Icon) ?: AllIcons.Actions.Execute
-            return JBLabel(icon).apply {
+            return JBLabel(MaxSizeIcon(icon)).apply {
                 horizontalAlignment = SwingConstants.CENTER
                 verticalAlignment = SwingConstants.CENTER
                 isOpaque = false
@@ -244,7 +244,7 @@ private class QuickRunConfigDialog(private val project: Project) : DialogWrapper
         override fun getTableCellEditorComponent(table: JTable, value: Any?, isSelected: Boolean, row: Int, column: Int): Component {
             rowIndex = row
             val icon = (value as? Icon) ?: AllIcons.Actions.Execute
-            button = JButton(icon).apply {
+            button = JButton(MaxSizeIcon(icon)).apply {
                 putClientProperty("ActionToolbar.smallVariant", true)
                 addActionListener { SwingUtilities.invokeLater { openPopup(this) } }
             }
@@ -269,7 +269,8 @@ private class QuickRunConfigDialog(private val project: Project) : DialogWrapper
                                 val entry = iconService.buildEntryFromKeyInteractive(comp, selectedValue.key)
                                 if (entry != null) {
                                     iconService.setSelection(r.key, entry)
-                                    (comp as? JButton)?.icon = iconService.resolveIconFromSelection(entry) ?: AllIcons.Actions.Execute
+                                    val resolved = iconService.resolveIconFromSelection(entry) ?: AllIcons.Actions.Execute
+                                    (comp as? JButton)?.icon = MaxSizeIcon(resolved)
                                 }
                                 stopCellEditing()
                                 return FINAL_CHOICE

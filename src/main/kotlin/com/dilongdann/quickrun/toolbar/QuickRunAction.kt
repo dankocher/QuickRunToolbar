@@ -42,9 +42,9 @@ class QuickRunAction(private val actualName: String, private val displayName: St
     override fun createCustomComponent(presentation: Presentation, place: String): JComponent {
         val hasText = showName
         val button = if (hasText) {
-            JButton(toHtmlPreserveCase(displayName), AllIcons.Actions.Execute)
+            JButton(toHtmlPreserveCase(displayName), MaxSizeIcon(AllIcons.Actions.Execute))
         } else {
-            JButton(AllIcons.Actions.Execute).apply { text = null }
+            JButton(MaxSizeIcon(AllIcons.Actions.Execute)).apply { text = null }
         }
         button.toolTipText = presentation.description ?: "Run \"$actualName\""
         button.putClientProperty("ActionToolbar.smallVariant", true)
@@ -70,7 +70,8 @@ class QuickRunAction(private val actualName: String, private val displayName: St
                 btn.horizontalAlignment = JButton.CENTER
                 btn.horizontalTextPosition = JButton.CENTER
             }
-            btn.icon = presentation.icon ?: AllIcons.Actions.Execute
+            val rawIcon = presentation.icon ?: AllIcons.Actions.Execute
+            btn.icon = MaxSizeIcon(rawIcon)
             btn.toolTipText = presentation.description
             btn.iconTextGap = JBUI.scale(2)
         }
