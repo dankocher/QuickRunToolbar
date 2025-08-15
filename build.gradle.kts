@@ -20,7 +20,7 @@ intellij {
 tasks.patchPluginXml {
     // Compatibilidad: desde 241 hasta 252.* (tu IDE actual)
     sinceBuild.set("241")
-    untilBuild.set("252.*")
+    untilBuild.set("")
 }
 
 kotlin {
