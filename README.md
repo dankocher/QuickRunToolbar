@@ -6,20 +6,21 @@ Quick Run Toolbar puts your favorite Run/Debug configurations right on the Main 
 - Buttons on the Main Toolbar (New UI and Classic UI).
 - Pick which Run/Debug configurations appear.
 - Reorder buttons with drag & drop.
-- Custom icon per button (SVG/PNG), light/dark aware.
 - Optional text label per button (show/hide).
 - Enable/disable per button without removing the configuration.
 - Per‑project settings; non‑destructive (doesn’t modify your Run/Debug configurations).
 - Works with any Run/Debug configuration type.
-- Built‑in icon picker with search + “Choose from file…” support.
+- Built‑in icon picker with search.
 
 ## Screenshots
 
-[//]: # (![Main Toolbar buttons]&#40;docs/images/screenshot1.png&#41;)
-![Icon picker and editor](docs/images/screenshot2.png)
+![Main Toolbar buttons](docs/images/screenshot1.png)
+![Main Toolbar buttons](docs/images/screenshot2.png)
+
+[//]: # (![Icon picker and editor]&#40;docs/images/screenshot2.png&#41;)
 
 [//]: # (![Reorder with drag & drop]&#40;docs/images/screenshot3.png&#41;)
-![Run action in action](docs/images/screenshot4.png)
+[//]: # (![Run action in action]&#40;docs/images/screenshot4.png&#41;)
 
 ## Installation
 - From the IDE:
@@ -49,7 +50,7 @@ Use the dedicated editor to select, order, and customize your buttons:
 
 In the editor dialog:
 - Reorder rows using the drag handle to change button order.
-- Click the Icon cell to choose a custom icon for the button.
+- Click the Icon cell to choose an icon from the available set.
 - Edit the Name cell to override the display label (optional).
 - Toggle “Show Name” to show/hide the text label on the toolbar.
 - Toggle “Enabled” to show/hide the button on the toolbar.
