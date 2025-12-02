@@ -49,6 +49,10 @@ class QuickRunAction(private val actualName: String, private val displayName: St
         button.toolTipText = presentation.description ?: "Run \"$actualName\""
         button.putClientProperty("ActionToolbar.smallVariant", true)
         button.iconTextGap = JBUI.scale(2)
+        // Hacer el botón transparente
+        button.isContentAreaFilled = false
+        button.isOpaque = false
+        button.isBorderPainted = false
         if (!hasText) {
             button.horizontalAlignment = JButton.CENTER
             button.horizontalTextPosition = JButton.CENTER

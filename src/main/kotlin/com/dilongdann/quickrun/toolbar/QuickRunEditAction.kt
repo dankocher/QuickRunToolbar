@@ -40,6 +40,10 @@ class QuickRunEditAction : AnAction("Edit", "Edit Quick Run Buttons", AllIcons.A
             toolTipText = presentation.text ?: "Edit Quick Run Buttons"
             isFocusable = false
             margin = Insets(0, 0, 0, 0)
+            // Hacer el botón transparente
+            isContentAreaFilled = false
+            isOpaque = false
+            isBorderPainted = false
         }
         // Forzar botón cuadrado: ancho = alto preferido
         val h = btn.preferredSize.height
